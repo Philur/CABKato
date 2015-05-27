@@ -1,0 +1,440 @@
+<?xml version="1.0"?>
+<!-- 
+ - JenkinsRemote - A tool that sits in the tray and provide Jenkins information/control.
+ -
+ - Copyright 2009 SP extreme (http://www.spextreme.com)
+ - 
+ - Licensed under the Apache License, Version 2.0 (the "License");
+ - you may not use this file except in compliance with the License.
+ - You may obtain a copy of the License at
+ - 
+ -     http://www.apache.org/licenses/LICENSE-2.0
+ - 
+ - Unless required by applicable law or agreed to in writing, software
+ - distributed under the License is distributed on an "AS IS" BASIS,
+ - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ - See the License for the specific language governing permissions and
+ - limitations under the License.
+ -->
+
+<project name="jenkinsremote" basedir="." default="all">
+	<property file="build.properties" />
+	<property environment="env" />
+
+	<!-- The set of path/library sets for the project -->
+	<path id="jdom.libraryclasspath">
+		<fileset dir="${jdom.root.directory}" includes="jdom.jar" />
+	</path>
+
+	<path id="jface.libraryclasspath">
+		<fileset dir="${jface.root.directory}" includes="*.jar" />
+	</path>
+
+	<path id="jenkins.cli.libraryclasspath">
+		<fileset dir="${jenkins.cli.root.directory}" includes="*.jar" />
+	</path>
+	
+	<path id="swt.libraryclasspath">
+		<fileset dir="${swt.root.directory}" includes="${swt.platform.jar}" />
+	</path>
+
+	<path id="master.classpath">
+		<path refid="jdom.libraryclasspath" />
+		<path refid="jface.libraryclasspath" />
+		<path refid="jenkins.cli.libraryclasspath" />
+		<path refid="swt.libraryclasspath" />
+	</path>
+
+	<!-- Libraries needed for testing -->
+	<path id="testing.libraryclasspath">
+		<fileset dir="${junit.root.directory}" includes="junit-4.5.jar" />
+		<fileset dir="${mockito.root.directory}" includes="mockito-all-*.jar" />
+	</path>
+
+	<path id="local.projects.libraryclasspath">
+		<pathelement location="${build.directory}/${com.spextreme.jenkins.remote.name}" />
+		<pathelement location="${build.directory}/${com.spextreme.jenkins.remote.tests.name}" />
+	</path>
+
+	<path id="test.classpath">
+		<path refid="master.classpath" />
+		<path refid="testing.libraryclasspath" />
+		<path refid="local.projects.libraryclasspath" />
+	</path>
+
+	<!-- Do everything -->
+	<target name="all" depends="clean, deploy, documentation" description="Performs all action including clean and deploy.">
+	</target>
+
+	<!-- Clean the build area -->
+	<target name="clean" description="Cleans everything that was generated in the build directory">
+		<echo message="Cleaning build area (${basedir}/${build.directory})" />
+
+		<delete dir="${build.directory}" />
+	</target>
+
+	<!-- Setup work for any build to occur -->
+	<target name="prepare" description="Sets up the build area and prints out build information" unless="disable.prepare">
+		<tstamp>
+			<format property="RIGHTNOW" pattern="MM/d/yyyy hh:mm:ss" locale="en" />
+		</tstamp>
+		<echo message="Build Time: ${RIGHTNOW}" />
+
+		<!-- construct the version string -->
+		<property name="version.information" value="${version.major}.${version.minor}.${version.revision}.${env.BUILD_NUMBER}" />
+
+		<!-- Setup basic properties for general use -->
+		<property name="staging.directory" value="${build.directory}/${project.name}" />
+		<property name="staging.library.directory" value="${staging.directory}/lib" />
+		<property name="staging.binary.directory" value="${staging.directory}/bin" />
+
+
+		<!-- Print out some of the build details -->
+		<echo message="ANT Home: ${ant.home}" />
+		<echo message="ANT Version: ${ant.version}" />
+		<echo message="Java Home: ${java.home}" />
+		<echo message="Java Version: ${java.version}" />
+		<echo message="SWT Jar: ${swt.root.directory}/${swt.platform.jar}" />
+		<echo message="Build Location: ${basedir}/${build.directory}" />
+		<echo message="Build Version: ${version.information}" />
+		<echo message="Reports Location: ${build.directory}/${reports.directory}" />
+
+		<!-- Setup the build stucture -->
+		<mkdir dir="${build.directory}" />
+
+		<property name="disable.prepare" value="true" />
+	</target>
+
+	<!--
+	This compiles all the parts of this project.
+	-->
+	<target name="compile" description="Compile all the source" depends="-compile.com.spextreme.jenkins.remote,
+					 -compile.com.spextreme.jenkins.remote.tests" />
+
+	<!-- Compiles the jenkins.remote core project -->
+	<target name="-compile.com.spextreme.jenkins.remote" depends="prepare">
+		<property name="jenkins.remote.build.directory" value="${build.directory}/${com.spextreme.jenkins.remote.name}" />
+
+		<echo message="Compiling ${com.spextreme.jenkins.remote.name} into ${jenkins.remote.build.directory}" />
+
+		<mkdir dir="${build.directory}/${com.spextreme.jenkins.remote.name}" />
+		<mkdir dir="${staging.library.directory}" />
+		<javac destdir="${jenkins.remote.build.directory}" source="${javac.source}" target="${javac.target}" debug="${javac.debug.info}" deprecation="false" optimize="${javac.optimization}" failonerror="${javac.fail.on.error}">
+			<src path="${trunk.directory}/${com.spextreme.jenkins.remote.name}/${source.directory}" />
+			<classpath>
+				<path refid="master.classpath" />
+			</classpath>
+		</javac>
+
+		<copy todir="${build.directory}/${com.spextreme.jenkins.remote.name}">
+			<fileset dir="${trunk.directory}/${com.spextreme.jenkins.remote.name}/${source.directory}">
+				<include name="**/*.xml" />
+			</fileset>
+		</copy>
+	</target>
+
+	<!-- Compiles the test project for the jenkins.remote core -->
+	<target name="-compile.com.spextreme.jenkins.remote.tests" depends="-compile.com.spextreme.jenkins.remote">
+		<property name="jenkins.remote.tests.build.directory" value="${build.directory}/${com.spextreme.jenkins.remote.tests.name}" />
+
+		<echo message="Compiling ${com.spextreme.jenkins.remote.tests.name} into ${jenkins.remote.tests.build.directory}" />
+
+		<mkdir dir="${jenkins.remote.tests.build.directory}" />
+		<javac destdir="${jenkins.remote.tests.build.directory}" source="${javac.source}" target="${javac.target}" debug="${javac.debug.info}" deprecation="false" optimize="${javac.optimization}" failonerror="${javac.fail.on.error}">
+			<src path="${trunk.directory}/${com.spextreme.jenkins.remote.tests.name}/${source.directory}" />
+			<classpath>
+				<path refid="test.classpath" />
+			</classpath>
+		</javac>
+	</target>
+
+	<!--
+	This creates the package structure.
+	-->
+	<target name="package" depends="compile" description="Creates the base product excluding the platform jars (SWT)">
+
+		<property name="staging.base.directory" value="${build.directory}/${project.name}" />
+		<property name="staging.library.directory" value="${staging.base.directory}/lib" />
+
+		<!-- Create the app -->
+		<!-- Windows Version -->
+		<mkdir dir="${staging.library.directory}" />
+
+		<!-- Copy the dependant libraries to the staging area library directory -->
+		<copy todir="${staging.library.directory}">
+			<fileset dir="${jdom.root.directory}" includes="jdom.jar" />
+		</copy>
+
+		<copy todir="${staging.library.directory}">
+			<fileset dir="${jface.root.directory}" includes="*.jar" />
+		</copy>
+
+		<copy todir="${staging.library.directory}">
+			<fileset dir="${jenkins.cli.root.directory}" includes="*.jar" />
+		</copy>
+
+		<copy todir="${staging.library.directory}">
+			<fileset dir="${jenkins.cli.root.directory}" includes="*.jar" />
+		</copy>
+
+		<!-- Copy the images to the appropriate location -->
+		<mkdir dir="${staging.base.directory}/images" />
+		<copy todir="${staging.base.directory}">
+			<fileset dir="${trunk.directory}/${com.spextreme.jenkins.remote.name}" includes="images/**/*" />
+		</copy>
+
+		<!-- Copy licenses -->
+		<copy todir="${staging.base.directory}">
+			<fileset dir="${trunk.directory}/${com.spextreme.jenkins.remote.builder.name}" includes="LICENSE*" />
+		</copy>
+
+		<copy tofile="${staging.base.directory}/jdom-LICENSE.txt" file="${jdom.root.directory}/LICENSE.txt" />
+
+		<copy todir="${staging.base.directory}">
+			<fileset dir="${jface.root.directory}" includes="*.htm" />
+		</copy>
+
+		<copy tofile="${staging.base.directory}/LICENSE.txt">
+			<fileset dir="${jenkins.cli.root.directory}" includes="*.txt" />
+		</copy>
+
+		<!-- Copy PDF -->
+		<copy todir="${staging.base.directory}">
+			<fileset dir="${trunk.directory}/${com.spextreme.jenkins.remote.builder.name}" includes="J*.pdf" />
+		</copy>
+
+		<!-- Create the Jar file -->
+		<manifestclasspath property="jar.classpath" jarfile="${staging.library.directory}/${com.spextreme.jenkins.remote.name}.jar">
+			<classpath>
+				<fileset dir="${staging.library.directory}">
+					<include name="*.jar" />
+				</fileset>
+			</classpath>
+		</manifestclasspath>
+
+		<jar destfile="${staging.library.directory}/${com.spextreme.jenkins.remote.name}.jar" basedir="${build.directory}/${com.spextreme.jenkins.remote.name}">
+			<manifest>
+				<!-- Who is building this jar? -->
+				<attribute name="Built-By" value="SP extreme" />
+				<!-- Information about the program itself -->
+				<attribute name="Implementation-Vendor" value="SP extreme" />
+				<attribute name="Implementation-Title" value="Jenkins Remote" />
+				<attribute name="Implementation-Version" value="${version.information}" />
+				<!-- Main launch point -->
+				<attribute name="Main-Class" value="com.spextreme.jenkins.remote.JenkinsRemote" />
+				<!-- fixed local classpath -->
+				<attribute name="Class-Path" value="${jar.classpath}" />
+			</manifest>
+		</jar>
+
+		<!-- Create the test Jar file for the test -->
+		<jar destfile="${staging.base.directory}/lib/${com.spextreme.jenkins.remote.tests.name}.jar" basedir="${build.directory}/${com.spextreme.jenkins.remote.tests.name}">
+		</jar>
+	</target>
+
+	<!--
+	This sets up to run the test using the emma code coverage tool.  This creates
+	the instrumented code for the execution of the test.
+	-->
+	<target name="prepare-test" depends="package">
+	</target>
+
+	<!-- 
+	Performs all tests on all parts of this project. 
+	-->
+	<target name="test" if="runTests" depends="-test.com.spextreme.jenkins.remote" description="Runs all the tests for this project (${project.name})" />
+
+	<!-- Peforms the tests on the jenkins.remote core project. -->
+	<target name="-test.com.spextreme.jenkins.remote" depends="prepare-test" if="run.tests">
+		<echo message="Tests the ${com.spextreme.jenkins.remote.name} project" />
+
+		<property name="test.restuls" value="${build.directory}/test-results" />
+		<mkdir dir="${test.restuls}" />
+
+		<junit printsummary="yes" dir="${staging.directory}" fork="yes" haltonfailure="${junit.halt.on.failure}">
+			<classpath>
+				<path refid="test.classpath" />
+			</classpath>
+
+			<jvmarg value="-Djenkins.remote.test.url=${test.jenkins.server.url}" />
+
+			<formatter type="xml" />
+
+			<batchtest fork="yes" todir="${test.restuls}">
+				<fileset dir="${trunk.directory}/${com.spextreme.jenkins.remote.tests.name}/${source.directory}">
+					<include name="**/*Test*.java" />
+					<exclude name="**/AllTests*.java" />
+					<exclude name="**/ImageManagerTest.java" />
+				</fileset>
+			</batchtest>
+		</junit>
+	</target>
+
+	<!--
+	Finishes up by creating the coverage report from the coverage data.  This only runs
+	if emma enable is true.
+	-->
+	<target name="post-test" depends="test" description="Finishes up the test by creating the coverage report.">
+	</target>
+
+	<!-- 
+	Cleans up the package and prepares it for deployment. This will remove the test 
+	jar and the code coverage data if it had been created.
+	-->
+	<target name="-cleanup-for-deployment" depends="post-test">
+		<delete>
+			<fileset dir="${staging.base.directory}">
+				<include name="**/*test*.jar" />
+			</fileset>
+		</delete>
+	</target>
+
+	<!--
+	Cleans up and then creates the war that can be distributed or deployed to 
+	a server.
+	-->
+	<target name="deploy" depends="-cleanup-for-deployment" description="Creates a zip file that can be delivered.">
+		<antcall target="create.deployables">
+			<param name="platform" value="carbon.macosx" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="cocoa.macosx" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="cocoa.macosx.x86_64" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="gtk.linux.ppc" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="gtk.linux.s390" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="gtk.linux.s390x" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="gtk.linux.x86" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="gtk.linux.x86_64" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="gtk.solaris.sparc" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="gtk.solaris.x86" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="motif.aix.ppc" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="motif.hpux.ia64_32" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="motif.hpux.PA_RISC" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="motif.linux.x86" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="motif.solaris.sparc" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="photon.qnx.x86" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="win32.win32.x86" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="win32.win32.x86_64" />
+		</antcall>
+		<antcall target="create.deployables">
+			<param name="platform" value="wpf.win32.x86" />
+		</antcall>
+	</target>
+
+	<target name="create.deployables">
+		<!--
+		Param:
+		$platform = The platform string used to look up swt jar inside of eclipse delta pack and to use for naming (win32.win32.x86_64)
+		-->
+		<property name="deploy_area" value="${staging.base.directory}.${platform}_${version.information}" />
+		<mkdir dir="${deploy_area}" />
+
+		<copy todir="${deploy_area}" overwrite="true">
+			<fileset dir="${staging.base.directory}">
+				<include name="**" />
+			</fileset>
+		</copy>
+
+		<copy todir="${deploy_area}/lib" overwrite="true">
+			<fileset dir="${swt.root.directory}" includes="org.eclipse.swt.${platform}_3*.jar" excludes="*source*" />
+		</copy>
+
+		<zip destfile="${build.directory}/${project.name}.${platform}_${version.information}.zip">
+			<fileset dir="${deploy_area}">
+				<include name="**/*" />
+			</fileset>
+		</zip>
+
+		<delete dir="${deploy_area}">
+		</delete>
+	</target>
+
+	<!--
+	Creates the javadoc for the project.
+	-->
+	<target name="documentation" description="Generates the javadoc.  Test javadoc will be generated if the property is set.">
+		<antcall target="documentation.without.tests" />
+		<antcall target="documentation.with.tests" />
+	</target>
+
+	<!--
+	Creates the javadoc for the project.
+	-->
+	<target name="documentation.without.tests" if="generate.javadoc" unless="generate.test.javadoc" depends="prepare">
+		<property name="docs" location="${build.directory}/docs" />
+
+		<mkdir dir="${docs}" />
+
+		<javadoc destdir="${docs}" author="false" version="true" use="true" windowtitle="Jenkins Remote Documentation" failonerror="false">
+			<classpath>
+				<path refid="master.classpath" />
+				<path refid="test.classpath" />
+				<path refid="local.projects.libraryclasspath" />
+			</classpath>
+
+			<packageset dir="${trunk.directory}/${com.spextreme.jenkins.remote.name}/${source.directory}" defaultexcludes="yes" />
+
+			<doctitle>
+				<![CDATA[<h1>Jenkins Remote</h1>]]></doctitle>
+		<bottom>
+			<![CDATA[<i>Copyright &#169; 2009-2011 by SP extreme. All rights reserved.</i>]]></bottom>
+</javadoc>
+</target>
+
+<!--
+	Creates the javadoc for the project including the tests.
+	-->
+<target name="documentation.with.tests" if="generate.test.javadoc" depends="prepare">
+<property name="docs" location="${build.directory}/docs" />
+
+<mkdir dir="${docs}" />
+
+<javadoc destdir="${docs}" author="false" version="true" use="true" windowtitle="Jenkins Remote Documentation" failonerror="false">
+	<classpath>
+		<path refid="master.classpath" />
+		<path refid="test.classpath" />
+		<path refid="local.projects.libraryclasspath" />
+	</classpath>
+
+	<packageset dir="${trunk.directory}/${com.spextreme.jenkins.remote.name}/${source.directory}" defaultexcludes="yes" />
+	<packageset dir="${trunk.directory}/${com.spextreme.jenkins.remote.tests.name}/${source.directory}" defaultexcludes="yes" />
+
+	<doctitle>
+		<![CDATA[<h1>Jenkins Remote</h1>]]></doctitle>
+<bottom>
+	<![CDATA[<i>Copyright &#169; 2009-2011 by SP extreme. All rights reserved.</i>]]></bottom>
+</javadoc>
+</target>
+</project>

@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='windows-1252'?>
+<Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
+  <Product Name='Flash Cards GUI 1.0' Id='c261819f-cf1c-41bb-934a-47b88d500b4d' UpgradeCode='d441b469-6bee-4bbf-aa99-d15b318392bc'
+    Language='1033' Codepage='1252' Version='1.0.0' Manufacturer='Combitech'>
+	
+    <Package Id='*' Keywords='Installer' Description="Combitechs Flash Cards GUI Installer"
+      Comments='Flash Cards GUI is a trademark of Combitech.' Manufacturer='Combitech'
+      InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
+
+    <Media Id='1' Cabinet='Sample.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
+    <Property Id='DiskPrompt' Value="Combitechs Flash Cards GUI 1.0 Installation [1]" />
+
+    <Directory Id='TARGETDIR' Name='SourceDir'>
+      <Directory Id='ProgramFilesFolder' Name='PFiles'>
+        <Directory Id='Combitech' Name='Combitech'>
+          <Directory Id='INSTALLDIR' Name='Flash Cards GUI 1.0'>
+
+            <Component Id='MainExecutable' Guid='33e6d394-fefd-4622-a886-c71b6b6021b1'>
+              <File Id='FlashCardsEXE' Name='FlashCards.exe' DiskId='1' Source='FlashCards.exe' KeyPath='yes'>
+                <Shortcut Id="startmenuFlashCards10" Directory="ProgramMenuDir" Name="FlashCards GUI 1.0" WorkingDirectory='INSTALLDIR' Icon="FlashCards10.exe" IconIndex="0" Advertise="yes" />
+                <Shortcut Id="desktopFlashCards10" Directory="DesktopFolder" Name="FlashCards GUI 1.0" WorkingDirectory='INSTALLDIR' Icon="FlashCards10.exe" IconIndex="0" Advertise="yes" />
+              </File>
+            </Component>
+
+            <Component Id='FlashCardsLibrary' Guid='dba98060-639d-4771-b3a4-21a175e097b7'>
+              <File Id='FlashCardsLibraryDLL' Name='FlashCardsLibrary.dll' DiskId='1' Source='FlashCardsLibrary.dll' KeyPath='yes' />
+            </Component>
+
+          </Directory>
+        </Directory>
+      </Directory>
+
+      <Directory Id="ProgramMenuFolder" Name="Programs">
+        <Directory Id="ProgramMenuDir" Name="FlashCards GUI 1.0">
+          <Component Id="ProgramMenuDir" Guid="0392437f-3a7d-4a4e-b667-5813c6d4f46c">
+            <RemoveFolder Id='ProgramMenuDir' On='uninstall' />
+            <RegistryValue Root='HKCU' Key='Software\[Manufacturer]\[ProductName]' Type='string' Value='' KeyPath='yes' />
+          </Component>
+        </Directory>
+      </Directory>
+
+      <Directory Id="DesktopFolder" Name="Desktop" />
+    </Directory>
+
+    <Feature Id='Complete' Level='1'>
+      <ComponentRef Id='MainExecutable' />
+      <ComponentRef Id='FlashCardsLibrary' />
+      <ComponentRef Id='ProgramMenuDir' />
+    </Feature>
+
+    <Icon Id="FlashCards10.exe" SourceFile="FlashCards.exe" />
+
+  </Product>
+</Wix>
